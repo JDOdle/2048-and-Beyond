@@ -26,7 +26,6 @@ public class AI2048 {
  		if (col == 0) return;
 		
 		int[] recTile = tools.recoveryMode(col);
-		int leftVal = 0;
 		
 		if ( (tools.isColumnCompressable(col) &&
 				(tools.getColumnMax(col-1) > tools.getColumnMin(col))) ||
@@ -39,38 +38,40 @@ public class AI2048 {
 				!tools.isColumnCompressable(col) &&
 				!tools.columnCanMergeLeft(col)) {
 			
-			if ( (tools.columnFilled(col-1) == 3) &&
-					( (tools.getTile(col, 1) == tools.getTile(col-1,0)) ||
-					  (tools.getTile(col, 2) == tools.getTile(col-1, 1)) || 
-					  (tools.getTile(col, 3) == tools.getTile(col-1, 2)) ) &&
-					  (!tools.isColumnCompressable(col-1)) ) {
-					tools.pushDown();
-					tools.pushRight();
-			}
-			if ( (tools.columnFilled(col-1) == 2) &&
-					( (tools.getTile(col, 2) == tools.getTile(col-1,0)) ||
-					  (tools.getTile(col, 3) == tools.getTile(col-1,1)) ) &&
-					  (!tools.isColumnCompressable(col-1))) {
-					tools.pushDown();
-					tools.pushRight();
-					tools.pushUp();
-			}
-			if ( (tools.columnFilled(col-1) == 1) &&
-					(tools.getTile(col, 3) == tools.getTile(col-1,0)) &&
-						(!tools.isColumnCompressable(col-1)) ) {
-					tools.pushDown();
-					tools.pushRight();
-					tools.pushUp();
-			}
-			//recursive Case
-			else {
-				if (tools.recoveryMode(col-1)[0] != -1)
-					makeMove(col-1);
-				else if (recTile[0] != -1)
-					executeMoveHierarchy(col);
-				else
-					makeMove(col-1);
-				return;
+			if (!tools.pushUp()) {
+				if ( (tools.columnFilled(col-1) == 3) &&
+						( (tools.getTile(col, 1) == tools.getTile(col-1,0)) ||
+						  (tools.getTile(col, 2) == tools.getTile(col-1, 1)) || 
+						  (tools.getTile(col, 3) == tools.getTile(col-1, 2)) ) &&
+						  (!tools.isColumnCompressable(col-1)) ) {
+						tools.pushDown();
+						tools.pushRight();
+				}
+				else if ( (tools.columnFilled(col-1) == 2) &&
+						( (tools.getTile(col, 2) == tools.getTile(col-1,0)) ||
+						  (tools.getTile(col, 3) == tools.getTile(col-1,1)) ) &&
+						  (!tools.isColumnCompressable(col-1))) {
+						tools.pushDown();
+						tools.pushRight();
+						tools.pushUp();
+				}
+				else if ( (tools.columnFilled(col-1) == 1) &&
+						(tools.getTile(col, 3) == tools.getTile(col-1,0)) &&
+							(!tools.isColumnCompressable(col-1)) ) {
+						tools.pushDown();
+						tools.pushRight();
+						tools.pushUp();
+				}
+				//recursive Case
+				else {
+					if (tools.recoveryMode(col-1)[0] != -1)
+						makeMove(col-1);
+					else if (recTile[0] != -1)
+						executeMoveHierarchy(col);
+					else
+						makeMove(col-1);
+					return;
+				}
 			}
 		}
 		else {
@@ -81,7 +82,7 @@ public class AI2048 {
 			//if hierarchy is valid
 			else {
 				//if column is not full
-				if (!tools.isColumnFull(col)) {
+				if (!tools.isColumnFull(col) || tools.isColumnCompressable(col)) {
 					//if column can not merge to right
 					if (!tools.columnCanMergeLeft(col))
 						executeMoveHierarchy(col);
@@ -113,11 +114,11 @@ public class AI2048 {
 	
 	public static void executeMoveHierarchy(int col) {
 		int[] recTile = tools.recoveryMode(col);
-		int recTileVal = recTile[0];
+		int recTileVal;
 		int leftVal = 0;
 		
 		if (recTile[0] != -1) {
-			
+			recTileVal = tools.getTile(recTile[0], recTile[1]);
 			leftVal = tools.getTile(recTile[0]-1, recTile[1]);
 			
 			if (recTileVal < leftVal) {
@@ -143,8 +144,9 @@ public class AI2048 {
 					}
 				}
 				else {
-					if (tools.isColumnCompressable(col-1) ||
-							tools.columnFilled(col-1) <= 2) {
+					if ( ( (tools.isColumnCompressable(col-1) ||
+							tools.columnFilled(col-1) <= 2) && col != 3) || 
+							(tools.isColumnFull(3) && !tools.isColumnCompressable(3)) ) {
 						tools.pushDown();
 					}
 					else {
