@@ -27,100 +27,45 @@ public class AI2048 {
 		
 		int[] recTile = tools.recoveryMode(col);
 		
-		if ( (tools.isColumnCompressable(col) &&
-				(tools.getColumnMax(col-1) > tools.getColumnMin(col))) ||
-							(tools.getTile(col, 0) == 0) ){
-					tools.pushUp();
+		//always compress the current column when possible;
+		if (tools.isColumnCompressable(col))
+			tools.pushUp();
+		//if hierarchy is invalid
+		else if (recTile[0] != -1)
+			executeMoveHierarchy(col);
+		//if hierarchy is valid and merges are possible
+		else if (tools.columnCanMergeLeft(col))
+			tools.pushRight();
+		//if a pair of moves can be executed to merge tiles
+		//and the column is full
+		else if (twoMoveMerge(col) && tools.isColumnFull(col)) {
+			tools.pushDown();
+			tools.pushRight();
+			tools.pushUp();
 		}
-		 
-		//check for possible merges
-		else if (tools.isColumnFull(col) &&
-				!tools.isColumnCompressable(col) &&
-				!tools.columnCanMergeLeft(col)) {
-			
-			if (!tools.pushUp()) {
-				if ( (tools.columnFilled(col-1) == 3) &&
-						( (tools.getTile(col, 1) == tools.getTile(col-1,0)) ||
-						  (tools.getTile(col, 2) == tools.getTile(col-1, 1)) || 
-						  (tools.getTile(col, 3) == tools.getTile(col-1, 2)) ) &&
-						  (!tools.isColumnCompressable(col-1)) ) {
-						tools.pushDown();
-						tools.pushRight();
-				}
-				else if ( (tools.columnFilled(col-1) == 2) &&
-						( (tools.getTile(col, 2) == tools.getTile(col-1,0)) ||
-						  (tools.getTile(col, 3) == tools.getTile(col-1,1)) ) &&
-						  (!tools.isColumnCompressable(col-1))) {
-						tools.pushDown();
-						tools.pushRight();
-						tools.pushUp();
-				}
-				else if ( (tools.columnFilled(col-1) == 1) &&
-						(tools.getTile(col, 3) == tools.getTile(col-1,0)) &&
-							(!tools.isColumnCompressable(col-1)) ) {
-						tools.pushDown();
-						tools.pushRight();
-						tools.pushUp();
-				}
-				//recursive Case
-				else {
-					if (tools.recoveryMode(col-1)[0] != -1)
-						makeMove(col-1);
-					else if (recTile[0] != -1)
-						executeMoveHierarchy(col);
-					else
-						makeMove(col-1);
-					return;
-				}
-			}
-		}
-		else {
-			//if hierarchy is invalid
-			if (recTile[0] != -1) {
-				executeMoveHierarchy(col);
-			}
-			//if hierarchy is valid
-			else {
-				//if column is not full
-				if (!tools.isColumnFull(col) || tools.isColumnCompressable(col)) {
-					//if column can not merge to right
-					if (!tools.columnCanMergeLeft(col))
-						executeMoveHierarchy(col);
-					else // if column can merge to right
-						tools.pushRight();
-				}
-				//if column can merge to right
-				else if (tools.columnCanMergeLeft(col))
-					tools.pushRight();
-				//if can not push down
-				else if (!tools.pushDown()) {
-					//if can not push right
-					if (!tools.pushRight()) {
-						//if can not push up
-						if (!tools.pushUp()) {
-							tools.pushLeft(); //last resort push
-							tools.pushRight(); //attempt to recover from pushing left
-						}
-					}
-				}
-				//if can push down and result allows for merging right
-				else if (tools.columnCanMergeLeft(col))
-					tools.pushRight();
-				else //if can push down but tiles can not merge right
-					tools.pushUp();
-			}
-		}
+		else if (tools.isColumnFull(col))
+			makeMove(col-1);
+		else
+			executeMoveHierarchy(col);
 	}
 	
-	public static void executeMoveHierarchy(int col) {
+	/**
+	 * This method executes the next best
+	 * move until a move has been executed
+	 * @param col
+	 */
+	private static void executeMoveHierarchy(int col) {
 		int[] recTile = tools.recoveryMode(col);
 		int recTileVal;
 		int leftVal = 0;
 		
+		//if the tiles are not ordered properly then the move priority changes
 		if (recTile[0] != -1) {
 			recTileVal = tools.getTile(recTile[0], recTile[1]);
 			leftVal = tools.getTile(recTile[0]-1, recTile[1]);
 			
+			//if the misplaced tile is blocked by a larger tile
+			//then we want to move that tile out of the way
 			if (recTileVal < leftVal) {
 				if (recTile[1] >= 2) {
 					if (tools.isColumnCompressable(col-1) ||
@@ -147,7 +92,15 @@ public class AI2048 {
 					if ( ( (tools.isColumnCompressable(col-1) ||
 							tools.columnFilled(col-1) <= 2) && col != 3) || 
 							(tools.isColumnFull(3) && !tools.isColumnCompressable(3)) ) {
-						tools.pushDown();
+						if (!tools.pushDown()) {
+							if (!tools.pushRight()) {
+								if (!tools.pushUp()) {
+									tools.pushLeft();
+									tools.pushRight();
+								}
+								tools.pushDown();
+							}
+						}
 					}
 					else {
 						if (!tools.pushRight()) {
@@ -205,5 +158,118 @@ public class AI2048 {
 				}
 			}
 		}
+	}
+
+	/**
+	 * This method determines if the given column will be able
+	 * to merge with the column to its left after pushing down
+	 * @param col
+	 * @return
+	 */
+	private static boolean twoMoveMerge(int col) {
+		
+		//case 1: left column has 4 tiles
+		if (tools.isColumnFull(col-1)) {
+			//case 1: bottom two tiles can merge
+			if (tools.tileCanMergeUp(col-1, 3)) {
+				//case 1: top two tiles can merge
+				if (tools.tileCanMergeUp(col-1, 1)) {
+					if (tools.getTile(col-1, 0)*2 == tools.getTile(col, 2)) return true;
+					if (tools.getTile(col-1, 2)*2 == tools.getTile(col, 3)) return true;
+					return false;
+				}
+				//case 2: top two tiles can not merge
+				else {
+					if (tools.getTile(col-1, 0) == tools.getTile(col, 1)) return true;
+					if (tools.getTile(col-1, 1) == tools.getTile(col, 2)) return true;
+					if (tools.getTile(col-1, 2)*2 == tools.getTile(col, 3)) return true;
+					return false;
+				}
+			}
+			//case 2: middle two tiles can merge
+			else if (tools.tileCanMergeUp(col-1, 2)) {
+				if (tools.getTile(col-1, 0) == tools.getTile(col, 1)) return true;
+				if (tools.getTile(col-1, 1)*2 == tools.getTile(col, 2)) return true;
+				return false;
+			}
+			//case 3: top two tiles can merge
+			else if (tools.tileCanMergeUp(col-1, 1)) {
+				return (tools.getTile(col-1, 0)*2 == tools.getTile(col, 1));
+			}
+			else
+				return false;
+		}
+		//case 2: left column has 3 tiles
+		if (tools.columnFilled(col-1) == 3) {
+			//case 1: top column is empty
+			if (tools.getTile(col-1, 0) == 0) {
+				//case 1: top two tiles can merge
+				if (tools.tileCanMergeDown(col-1, 1)) {
+					if (tools.getTile(col-1, 1)*2 == tools.getTile(col, 2))
+						return true;
+					return false;
+				}
+				//case 2: bottom two tiles can merge
+				else if (tools.tileCanMergeDown(col-1, 2)) {
+					if (tools.getTile(col-1, 2)*2 == tools.getTile(col, 3))
+						return true;
+					return false;
+				}
+				//case 3: no tiles can merge
+				else
+					return false;
+			}
+			//case 2: top column is not empty
+			else {
+				//case 1: top two tiles can merge
+				if (tools.tileCanMergeDown(col-1, 0)) {
+					if (tools.getTile(col-1, 0)*2 == tools.getTile(col, 2)) return true;
+					if (tools.getTile(col-1, 2) == tools.getTile(col, 3)) return true;
+					return false;
+				}
+				//case 2: bottom two tiles can merge
+				else if (tools.tileCanMergeDown(col-1, 1)) {
+					if (tools.getTile(col-1, 0) == tools.getTile(col, 2)) return true;
+					if (tools.getTile(col-1, 1)*2 == tools.getTile(col, 3)) return true;
+					return false;
+				}
+				//case 3: no tiles can merge
+				else {
+					if (tools.getTile(col-1, 0) == tools.getTile(col, 1)) return true;
+					if (tools.getTile(col-1, 1) == tools.getTile(col, 2)) return true;
+					if (tools.getTile(col-1, 2) == tools.getTile(col, 3)) return true;
+					return false;
+				}
+			}
+		}
+		//case 3: left column has 2 tiles
+		else if (tools.columnFilled(col-1) == 2) {
+			
+			//case 1: the tiles can merge
+			if (tools.getColumnMax(col-1) == tools.getColumnMin(col-1)) {
+				return (tools.getColumnMax(col-1)*2 == tools.getTile(col, 3));
+			}
+			//case 2: the tiles can not merge and top tile is empty
+			else if (tools.getTile(col-1, 0) == 0){
+				if (tools.getTile(col-1, 1) == tools.getTile(col, 2))
+					return true;
+				else
+					return tools.getTile(col-1, 2) == tools.getTile(col, 3);
+			}
+			//case 3: the tiles can not merge and top tile is not empty
+			else {
+				if (tools.getTile(col-1, 0) == tools.getTile(col, 2))
+					return true;
+				else
+					return tools.getTile(col-1, 1) == tools.getTile(col, 3);
+			}
+		}
+		//case 4: left column has 1 tile
+		else if (tools.columnFilled(col-1) == 1) {
+			return (tools.getColumnMax(col-1) == tools.getTile(col, 3));
+		}
+		
+		else 
+			return false;
 	}
 }
