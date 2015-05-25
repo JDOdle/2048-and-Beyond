@@ -5,7 +5,6 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.firefox.FirefoxDriver;
-import org.openqa.selenium.safari.SafariDriver;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
@@ -21,6 +20,10 @@ public class GameTools {
 		driver = new FirefoxDriver();
 		curState = new int[4][4];
 		lstState = new int[4][4];
+	}
+	
+	private GameTools(int[][] state) {
+		curState = state;
 	}
 	
 	/**
@@ -494,5 +497,22 @@ public class GameTools {
 			str += "\n";
 		}
 		return str;
+	}
+	
+	/**
+	 * This is to be used only for test cases
+	 * @param state
+	 */
+	public void setCurrentState(int[][] state) {
+		curState = state;
+	}
+	
+	/**
+	 * This is to be used only for test cases
+	 * @param state
+	 * @return
+	 */
+	public static GameTools getTestingGameTools(int[][] state) {
+		return new GameTools(state);
 	}
 }
