@@ -35,6 +35,10 @@ public class AI2048 {
 	}
 	
 	public void makeMove(int col) {
+
+ 		if (col == 0) return;
+		
+		int[] recTile = tools.recoveryMode(col);
 		
 		//always compress the current column when possible;
 		if (tools.isColumnCompressable(col))
@@ -42,6 +46,8 @@ public class AI2048 {
 		//if hierarchy is invalid
 		else if (tools.recoveryMode(col)[0] != -1)
 			columnRecoveryMove(col);
+		else if (recTile[0] != -1)
+			executeMoveHierarchy(col);
 		//if hierarchy is valid and merges are possible
 		else if (tools.columnCanMergeLeft(col))
 			tools.pushRight();
@@ -108,17 +114,19 @@ public class AI2048 {
 								tools.pushRight();
 							}
 							tools.pushDown();
+
 						}
 					}
 				}
 				else {
 					if (!tools.pushRight()) {
 						if (!tools.pushDown()) {
-							if (!tools.pushUp()) {
+                            if (!tools.pushUp()) {
 								tools.pushLeft();
 								tools.pushRight();
 							}
-							tools.pushDown();
+							else
+								tools.pushDown();
 						}
 					}
 				}
@@ -144,7 +152,7 @@ public class AI2048 {
 			else if (recTile[1] >= 2) {
 				if (!tools.pushUp()) {
 					if (!tools.pushRight()) {
-						if (!tools.pushDown()) {
+                        if (!tools.pushDown()) {
 							tools.pushLeft();
 							tools.pushRight();
 						}
@@ -200,8 +208,8 @@ public class AI2048 {
 						tools.pushRight();
 					}
 					tools.pushUp();
-				}
-			}
+                }
+            }
 		}
 	}
 
@@ -212,7 +220,6 @@ public class AI2048 {
 	 * @return
 	 */
 	public boolean columnUpRightMerge(int col) {
-		
 		for (int i = 0; i < 4; i++) {
 			if (tools.getTile(col, i) != 0 && tileUpRightMerge(col, i))
 				return true;
@@ -227,7 +234,7 @@ public class AI2048 {
 	 * @return
 	 */
 	public boolean columnDownRightMerge(int col) {
-		
+
 		for (int i = 0; i < 4; i++) {
 			if (tools.getTile(col, i) != 0 && tileDownRightMerge(col, i))
 				return true;
