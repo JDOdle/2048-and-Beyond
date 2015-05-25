@@ -92,6 +92,7 @@ public class AI2048 {
 				tools.pushUp();
 			else
 				tools.pushDown();
+			return;
 		}
 		
 		recTileVal = tools.getTile(recTile[0], recTile[1]);
@@ -164,10 +165,10 @@ public class AI2048 {
 			if (tools.tileCanMergeLeft(recTile[0], recTile[1]))
 				tools.pushRight();
 			//recursive case
-			if (tools.recoveryMode(col-1)[1] != -1 && col > 0)
+			else if (tools.recoveryMode(col-1)[1] != -1 && col > 0)
 				columnRecoveryMove(col-1);
 			//case 2: can execute right right maneuver to merge with tile
-			if (tileRightRightMerge(recTile[0], recTile[1])) {
+			else if (tileRightRightMerge(recTile[0], recTile[1])) {
 				tools.pushRight();
 				tools.pushRight();
 			}
@@ -196,8 +197,8 @@ public class AI2048 {
 					}
 				}
 			}
-			//case 5: execute next best moves until one is executed
-			if (!tools.pushUp()) {
+			//case 6: execute next best moves until one is executed
+			else if (!tools.pushUp()) {
 				if (!tools.pushRight()) {
                     if (!tools.pushDown()) {
 						tools.pushLeft();
