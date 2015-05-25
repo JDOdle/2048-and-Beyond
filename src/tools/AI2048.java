@@ -30,10 +30,16 @@ public class AI2048 {
 	public void quitGame() {
 		tools.driver.quit();
 	}
+	
 	public void makeMove() {
 		makeMove(3);
 	}
 	
+	/**
+	 * This method determines the best move to execute and executes it.
+	 * It is a recursive method.
+	 * @param col
+	 */
 	public void makeMove(int col) {
 
  		if (col == 0) return;
@@ -70,89 +76,119 @@ public class AI2048 {
 			executeMoveHierarchy(col);
 	}
 	
+	/**
+	 * This method tries to find the best move to repair an unordered column
+	 * @param col
+	 */
 	public void columnRecoveryMove(int col) {
 		
 		int[] recTile = tools.recoveryMode(col);
 		int recTileVal;
 		int leftVal = 0;
 		
+		//base case
+		if (col == 0) {
+			if (recTile[1] <= 2)
+				tools.pushUp();
+			else
+				tools.pushDown();
+			return;
+		}
+		
 		recTileVal = tools.getTile(recTile[0], recTile[1]);
 		leftVal = tools.getTile(recTile[0]-1, recTile[1]);
 		
-		//if the misplaced tile is blocked by a larger tile
-		//then we want to move that tile out of the way
+		//case 1: left tile is greater than the bad tile
 		if (recTileVal < leftVal) {
-			if (recTile[1] >= 2) {
-				if (tools.isColumnCompressable(col-1) ||
-						tools.columnFilled(col-1) <= 2) {
-					if (!tools.pushUp()) {
-						tools.pushDown();
-						tools.pushUp();
-					}
-				}
-				else {
-					if (!tools.pushRight()) {
-						if (!tools.pushUp()) {
-							if (!tools.pushDown()) {
-								tools.pushLeft();
-								tools.pushRight();
-							}
-							else
-								tools.pushUp();
-						}
-					} 
-				}
+			//case 1: bad tile is at top
+			if (recTile[1] == 0) {
+				//case 1: column is not full or can be compressed
+				if ( (tools.columnFilled(col-1) < tools.columnFilled(col) ||
+						tools.isColumnCompressable(col-1) ) &&
+						tools.isColumnFull(3))
+					tools.pushDown();
+				//case 2: column is full and can not be compressed
+				else
+					makeMove(col-1);
 			}
+			//case 2: bad tile is second from top
+			else if (recTile[1] == 1) {
+				//case 1: check for up right merge maneuver
+				if (tileUpRightMerge(recTile[0], recTile[1])) {
+					tools.pushUp();
+					tools.pushRight();
+				}
+				//case 2: check for down right merge maneuver
+				else if (tileDownRightMerge(recTile[0], recTile[1])) {
+					tools.pushDown();
+					tools.pushRight();
+					tools.pushDown();
+				}
+				//case 3: left column has 2 or less tiles
+				else if (tools.columnFilled(col-1) <= 2 && tools.isColumnFull(3))
+					tools.pushDown();
+				else
+					makeMove(col-1);
+			}
+			//case 3: bad tile is third from top
+			else if (recTile[1] == 2) {
+				//case 1: check for down right merge maneuver
+				if (tileDownRightMerge(recTile[0], recTile[1])) {
+					tools.pushDown();
+					tools.pushRight();
+					tools.pushUp();
+				}
+				//case 2: check for up right merge maneuver
+				else if (tileUpRightMerge(recTile[0], recTile[1])) {
+					tools.pushUp();
+					tools.pushRight();
+				}
+				//case 3: left column has 2 or less tiles
+				else if (tools.columnFilled(col-1) <= 2)
+					tools.pushUp();
+				else
+					makeMove(col-1);
+			}
+			//case 4: bad tile is at bottom
 			else {
-				if ( ( (tools.isColumnCompressable(col-1) ||
-						tools.columnFilled(col-1) <= 2) && col != 3) || 
-						(tools.isColumnFull(3) && !tools.isColumnCompressable(3)) ) {
-					if (!tools.pushDown()) {
-						if (!tools.pushRight()) {
-							if (!tools.pushUp()) {
-								tools.pushLeft();
-								tools.pushRight();
-							}
-							tools.pushDown();
-
-						}
-					}
-				}
-				else {
-					if (!tools.pushRight()) {
-						if (!tools.pushDown()) {
-                            if (!tools.pushUp()) {
-								tools.pushLeft();
-								tools.pushRight();
-							}
-							else
-								tools.pushDown();
-						}
-					}
-				}
+				//case 1: column is not full or can be compressed
+				if (tools.columnFilled(col-1) < tools.columnFilled(col) || tools.isColumnCompressable(col-1))
+					tools.pushUp();
+				//case 2: column is full and can not be compressed
+				else
+					makeMove(col-1);
 			}
 		}
-		//otherwise we want to make a tile that can be merged with it
-		else {
+		//case 2: left tile less than or equal to the bad tile
+		else {				
 			//case 1: can execute merge with left tile
 			if (tools.tileCanMergeLeft(recTile[0], recTile[1]))
 				tools.pushRight();
-			//case 2: can execute up right maneuver to merge with tile
+			//recursive case
+			else if (tools.recoveryMode(col-1)[1] != -1 && col > 0)
+				columnRecoveryMove(col-1);
+			//case 2: can execute right right maneuver to merge with tile
+			else if (tileRightRightMerge(recTile[0], recTile[1])) {
+				tools.pushRight();
+				tools.pushRight();
+			}
+			//case 3: can execute up right maneuver to merge with tile
 			else if (tileUpRightMerge(recTile[0], recTile[1])) {
 				tools.pushUp();
 				tools.pushRight();
 			}
-			//case 3: can execute down right maneuver to merge with tile
+			//case 4: can execute down right maneuver to merge with tile
 			else if (tileDownRightMerge(recTile[0], recTile[1])) {
 				tools.pushDown();
 				tools.pushRight();
 				tools.pushUp();
 			}
-			//case 4: execute next best moves until one is executed
-			else if (recTile[1] >= 2) {
-				if (!tools.pushUp()) {
-					if (!tools.pushRight()) {
-                        if (!tools.pushDown()) {
+			//case 5: check for smaller tiles to move into position
+			else if ( (tools.getTile(recTile[0], recTile[1]) == 0) &&
+				(tools.getRowMin(recTile[1]) < tools.getTile(recTile[0], recTile[1])) ) {
+				if (!tools.pushRight()) {
+					if (!tools.pushUp()) {
+						if (!tools.pushDown()) {
 							tools.pushLeft();
 							tools.pushRight();
 						}
@@ -161,16 +197,15 @@ public class AI2048 {
 					}
 				}
 			}
-			else {
-				if (!tools.pushDown()) {
-					if (!tools.pushRight()) {
-						if (!tools.pushUp()) {
-							tools.pushLeft();
-							tools.pushRight();
-						}
-						else
-							tools.pushDown();
+			//case 6: execute next best moves until one is executed
+			else if (!tools.pushUp()) {
+				if (!tools.pushRight()) {
+                    if (!tools.pushDown()) {
+						tools.pushLeft();
+						tools.pushRight();
 					}
+					else
+						tools.pushUp();
 				}
 			}
 		}
