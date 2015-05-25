@@ -137,7 +137,7 @@ public class GameTools {
 	public int getColumnMin(int col) {
 		int min = Integer.MAX_VALUE;
 		for (int i = 0; i < 4; i++) {
-			if (curState[col][i] < min)
+			if (curState[col][i] < min && curState[col][i] != 0)
 				min = curState[col][i];
 		}
 		return min;
@@ -236,7 +236,7 @@ public class GameTools {
 	public int getRowMin(int row) {
 		int min = Integer.MAX_VALUE;
 		for (int i = 0; i < 4; i++) {
-			if (curState[i][row] < min)
+			if (curState[i][row] < min && curState[i][row] != 0)
 				min = curState[i][row];
 		}
 		return min;
